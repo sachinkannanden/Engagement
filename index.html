@@ -117,8 +117,6 @@ h2{font-family:var(--display);font-weight:700;font-size:clamp(32px,9.5vw,44px);l
 .btn:focus-visible{outline:3px solid var(--kumkum);outline-offset:3px}
 .btn.fill{background:var(--kumkum);border-color:var(--kumkum);color:#fff}
 .btn.fill:hover{background:#8f0e22}
-.btn.wa{background:#1d9a52;border-color:#1d9a52;color:#fff}
-.btn.wa:hover{background:#167c41}
 
 /* hosts */
 .hosts{display:grid;gap:18px;width:100%;max-width:400px}
@@ -128,7 +126,6 @@ h2{font-family:var(--display);font-weight:700;font-size:clamp(32px,9.5vw,44px);l
 .sign{margin-top:4px}
 .sign .l{font-size:11px;letter-spacing:.26em;text-transform:uppercase;font-weight:600;color:var(--kumkum)}
 .sign .w{font-family:var(--display);font-style:italic;font-weight:600;font-size:40px;line-height:1.15;color:var(--leaf)}
-.toast{min-height:20px;font-size:14px;color:var(--leaf)}
 
 /* entrance when a chapter reaches the middle of the screen */
 .slide.active .in>*{animation:rise .7s cubic-bezier(.2,.7,.2,1) backwards}
@@ -291,11 +288,6 @@ body.export .deck{scroll-snap-type:none}
           <div><p class="t">Your loving</p><p class="n">N. Kannan<br>Padmavathi Kannan</p><p class="s">N. Kannan, VMK Industries, Porur<br>Padmavathi Kannan, former Union Councillor, Kannapalayam</p></div>
         </div>
         <div class="sign"><p class="l">Eagerly awaiting your presence</p><p class="w">K. Sachin, B.Tech</p></div>
-        <div class="acts">
-          <a class="btn wa" id="wa" target="_blank" rel="noopener" href="#">Share on WhatsApp</a>
-          <button class="btn" id="copy" type="button">Copy Link</button>
-        </div>
-        <p class="toast" id="toast" role="status"></p>
       </div>
     </section>
   </div>
@@ -313,7 +305,22 @@ body.export .deck{scroll-snap-type:none}
 
   var names=["Cover","Invitation","Families","Muhurtham","Venue","Blessings"];
   slides.forEach(function(s,i){var b=document.createElement("button");b.type="button";b.setAttribute("aria-label","Go to "+names[i]);b.innerHTML="<i></i>";b.onclick=function(){go(i)};nav.appendChild(b)});
-  function go(i){i=Math.max(0,Math.min(slides.length-1,i));deck.scrollTo({top:slides[i].offsetTop,behavior:"smooth"})}
+  /* smooth scrolling: eased jumps for dots and keys, gentle glide for a mouse wheel */
+  var raf=0,fine=matchMedia("(hover:hover) and (pointer:fine)").matches;
+  function stop(){if(raf){cancelAnimationFrame(raf);raf=0}}
+  function glide(to,dur){stop();deck.style.scrollBehavior="auto";var from=deck.scrollTop,t0=performance.now();to=Math.max(0,Math.min(deck.scrollHeight-deck.clientHeight,to));
+    if(reduce||Math.abs(to-from)<2){deck.scrollTop=to;return}
+    (function step(t){var k=Math.min(1,(t-t0)/dur),e=k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;deck.scrollTop=from+(to-from)*e;if(k<1)raf=requestAnimationFrame(step);else raf=0})(t0)}
+  function go(i){i=Math.max(0,Math.min(slides.length-1,i));glide(slides[i].offsetTop,Math.min(1300,650+Math.abs(i-cur)*140))}
+  if(fine&&!reduce){
+    deck.style.scrollSnapType="none";
+    var target=0,wheeling=false;
+    deck.addEventListener("wheel",function(e){if(e.ctrlKey||Math.abs(e.deltaX)>Math.abs(e.deltaY))return;e.preventDefault();stop();
+      if(!wheeling){target=deck.scrollTop;wheeling=true}
+      var dy=e.deltaMode===1?e.deltaY*40:e.deltaY;target=Math.max(0,Math.min(deck.scrollHeight-deck.clientHeight,target+dy));deck.style.scrollBehavior="auto";
+      if(!raf)raf=requestAnimationFrame(function loop(){var d=target-deck.scrollTop;if(Math.abs(d)<.5){deck.scrollTop=target;raf=0;wheeling=false;return}deck.scrollTop+=d*.12;raf=requestAnimationFrame(loop)})},{passive:false});
+    deck.addEventListener("touchstart",stop,{passive:true});
+  }
   window.__go=function(i){deck.style.scrollBehavior="auto";deck.scrollTop=slides[i].offsetTop;fx()};
   addEventListener("keydown",function(e){
     if(e.key==="ArrowDown"||e.key==="PageDown"||e.key===" "){e.preventDefault();go(cur+1)}
@@ -361,12 +368,6 @@ body.export .deck{scroll-snap-type:none}
 
   /* links */
   $("#cal").href="https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent("Engagement of Kokila & Arjun")+"&dates=20261115T123000Z/20261115T140000Z&location="+encodeURIComponent("Geetha Citadel Wedding Hall, Avadi - Poonamallee Road, Chennai")+"&details="+encodeURIComponent("Engagement ceremony. Muhurtham 6:00 PM to 7:30 PM (Viruchika lagna).");
-  var link=(location.origin&&location.origin!=="null")?location.origin+"/":location.href;
-  var msg="You are warmly invited to the engagement of Kokila & Arjun.\nSunday, 15 November 2026, 6:00 PM to 7:30 PM\nGeetha Citadel Wedding Hall, Avadi - Poonamallee Road, Chennai\n\n"+link;
-  $("#wa").href="https://wa.me/?text="+encodeURIComponent(msg);
-  $("#copy").addEventListener("click",function(){var t=$("#toast");function ok(v){t.textContent=v?"Link copied. Paste it into WhatsApp.":"Copy the address from your browser bar."}
-    try{navigator.clipboard.writeText(link).then(function(){ok(1)},function(){ok(0)})}catch(e){ok(0)}});
-
   fx();
 })();
 </script>
